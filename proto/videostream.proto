@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "./proto";
+
+package videostream;
+
+service VideoStreamService {
+    rpc ListVideos(NoParam) returns (VideoList);
+    rpc GetVideoMetaData (VideoRequest) returns (VideoMetadata);
+    rpc StreamVideo (VideoRequest) returns (stream VideoChunk);
+}
+
+message NoParam{};
+
+message VideoRequest{
+    string video_name = 1;
+};
+
+message VideoList{
+    repeated string videos = 1;
+}
+
+message VideoMetadata{
+    string name = 1;
+    int64 size = 2; // in bytes
+    string format = 3;
+    int64 duration = 4; // in seconds
+}
+
+message VideoChunk{
+    bytes chunk_data = 1;
+}
