@@ -8,6 +8,7 @@ service VideoStreamService {
     rpc ListVideos(NoParam) returns (VideoList);
     rpc GetVideoMetaData (VideoRequest) returns (VideoMetadata);
     rpc StreamVideo (VideoRequest) returns (stream VideoChunk);
+
 }
 
 message NoParam{};
