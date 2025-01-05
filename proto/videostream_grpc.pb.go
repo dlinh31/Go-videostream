@@ -22,6 +22,8 @@ const (
 	VideoStreamService_ListVideos_FullMethodName       = "/videostream.VideoStreamService/ListVideos"
 	VideoStreamService_GetVideoMetaData_FullMethodName = "/videostream.VideoStreamService/GetVideoMetaData"
 	VideoStreamService_StreamVideo_FullMethodName      = "/videostream.VideoStreamService/StreamVideo"
+	VideoStreamService_CreateWatchParty_FullMethodName = "/videostream.VideoStreamService/CreateWatchParty"
+	VideoStreamService_JoinWatchParty_FullMethodName   = "/videostream.VideoStreamService/JoinWatchParty"
 )
 
 // VideoStreamServiceClient is the client API for VideoStreamService service.
@@ -31,6 +33,8 @@ type VideoStreamServiceClient interface {
 	ListVideos(ctx context.Context, in *NoParam, opts ...grpc.CallOption) (*VideoList, error)
 	GetVideoMetaData(ctx context.Context, in *VideoRequest, opts ...grpc.CallOption) (*VideoMetadata, error)
 	StreamVideo(ctx context.Context, in *VideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VideoChunk], error)
+	CreateWatchParty(ctx context.Context, in *CreatePartyRequest, opts ...grpc.CallOption) (*PartyResponse, error)
+	JoinWatchParty(ctx context.Context, in *JoinPartyRequest, opts ...grpc.CallOption) (*PartyResponse, error)
 }
 
 type videoStreamServiceClient struct {
@@ -80,6 +84,26 @@ func (c *videoStreamServiceClient) StreamVideo(ctx context.Context, in *VideoReq
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VideoStreamService_StreamVideoClient = grpc.ServerStreamingClient[VideoChunk]
 
+func (c *videoStreamServiceClient) CreateWatchParty(ctx context.Context, in *CreatePartyRequest, opts ...grpc.CallOption) (*PartyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PartyResponse)
+	err := c.cc.Invoke(ctx, VideoStreamService_CreateWatchParty_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoStreamServiceClient) JoinWatchParty(ctx context.Context, in *JoinPartyRequest, opts ...grpc.CallOption) (*PartyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PartyResponse)
+	err := c.cc.Invoke(ctx, VideoStreamService_JoinWatchParty_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VideoStreamServiceServer is the server API for VideoStreamService service.
 // All implementations must embed UnimplementedVideoStreamServiceServer
 // for forward compatibility.
@@ -87,6 +111,8 @@ type VideoStreamServiceServer interface {
 	ListVideos(context.Context, *NoParam) (*VideoList, error)
 	GetVideoMetaData(context.Context, *VideoRequest) (*VideoMetadata, error)
 	StreamVideo(*VideoRequest, grpc.ServerStreamingServer[VideoChunk]) error
+	CreateWatchParty(context.Context, *CreatePartyRequest) (*PartyResponse, error)
+	JoinWatchParty(context.Context, *JoinPartyRequest) (*PartyResponse, error)
 	mustEmbedUnimplementedVideoStreamServiceServer()
 }
 
@@ -105,6 +131,12 @@ func (UnimplementedVideoStreamServiceServer) GetVideoMetaData(context.Context, *
 }
 func (UnimplementedVideoStreamServiceServer) StreamVideo(*VideoRequest, grpc.ServerStreamingServer[VideoChunk]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamVideo not implemented")
+}
+func (UnimplementedVideoStreamServiceServer) CreateWatchParty(context.Context, *CreatePartyRequest) (*PartyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateWatchParty not implemented")
+}
+func (UnimplementedVideoStreamServiceServer) JoinWatchParty(context.Context, *JoinPartyRequest) (*PartyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinWatchParty not implemented")
 }
 func (UnimplementedVideoStreamServiceServer) mustEmbedUnimplementedVideoStreamServiceServer() {}
 func (UnimplementedVideoStreamServiceServer) testEmbeddedByValue()                            {}
@@ -174,6 +206,42 @@ func _VideoStreamService_StreamVideo_Handler(srv interface{}, stream grpc.Server
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VideoStreamService_StreamVideoServer = grpc.ServerStreamingServer[VideoChunk]
 
+func _VideoStreamService_CreateWatchParty_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePartyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoStreamServiceServer).CreateWatchParty(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoStreamService_CreateWatchParty_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoStreamServiceServer).CreateWatchParty(ctx, req.(*CreatePartyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoStreamService_JoinWatchParty_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinPartyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoStreamServiceServer).JoinWatchParty(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoStreamService_JoinWatchParty_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoStreamServiceServer).JoinWatchParty(ctx, req.(*JoinPartyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VideoStreamService_ServiceDesc is the grpc.ServiceDesc for VideoStreamService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -188,6 +256,14 @@ var VideoStreamService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVideoMetaData",
 			Handler:    _VideoStreamService_GetVideoMetaData_Handler,
+		},
+		{
+			MethodName: "CreateWatchParty",
+			Handler:    _VideoStreamService_CreateWatchParty_Handler,
+		},
+		{
+			MethodName: "JoinWatchParty",
+			Handler:    _VideoStreamService_JoinWatchParty_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

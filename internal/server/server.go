@@ -1,19 +1,25 @@
 package server
 
 import (
-    "context"
-    "fmt"
-    "io"
-    "os"
-    "path/filepath"
-    "time"
-    pb "github.com/dlinh31/go-videostream/proto"
-    "google.golang.org/grpc"
+	"context"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
+	pb "github.com/dlinh31/go-videostream/proto"
+	"google.golang.org/grpc"
 )
 
 type VideoStreamServer struct {
     pb.UnimplementedVideoStreamServiceServer
     VideoDir string
+}
+
+func RegisterServer(grpcServer *grpc.Server, videoDir string) {
+    pb.RegisterVideoStreamServiceServer(grpcServer, &VideoStreamServer{VideoDir: videoDir})
 }
 
 func (s *VideoStreamServer) ListVideos(ctx context.Context, req *pb.NoParam) (*pb.VideoList, error) {
@@ -59,6 +65,26 @@ func (s *VideoStreamServer) StreamVideo(req *pb.VideoRequest, stream pb.VideoStr
     return nil
 }
 
-func RegisterServer(grpcServer *grpc.Server, videoDir string) {
-    pb.RegisterVideoStreamServiceServer(grpcServer, &VideoStreamServer{VideoDir: videoDir})
+var watchParties = make(map[string][]string)
+var mu sync.Mutex
+
+
+
+func (*VideoStreamServer) CreateWatchParty(ctx context.Context ,req *pb.CreatePartyRequest) (*pb.PartyResponse, error){
+    mu.Lock()
+    defer mu.Unlock()
+    partyId := fmt.Sprintf("party-%d", len(watchParties) + 1)
+    watchParties[partyId] = []string{req.HostName}
+    return &pb.PartyResponse{PartyId: partyId, Status: "success",Users: watchParties[partyId]}, nil
+}
+
+func (*VideoStreamServer) JoinWatchParty(ctx context.Context, req *pb.JoinPartyRequest) (*pb.PartyResponse, error){
+    mu.Lock()
+    defer mu.Unlock()
+    users, exists := watchParties[req.PartyId];
+    if !exists{
+        return &pb.PartyResponse{PartyId: req.PartyId, Status: "party not found", Users: nil}, nil
+    }
+    watchParties[req.PartyId] = append(users, req.UserName)
+    return &pb.PartyResponse{PartyId: req.PartyId, Status: "success", Users: watchParties[req.PartyId]}, nil
 }

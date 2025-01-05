@@ -9,6 +9,9 @@ service VideoStreamService {
     rpc GetVideoMetaData (VideoRequest) returns (VideoMetadata);
     rpc StreamVideo (VideoRequest) returns (stream VideoChunk);
 
+    rpc CreateWatchParty(CreatePartyRequest) returns (PartyResponse);
+    rpc JoinWatchParty(JoinPartyRequest) returns (PartyResponse);
+
 }
 
 message NoParam{};
@@ -31,3 +34,17 @@ message VideoMetadata{
 message VideoChunk{
     bytes chunk_data = 1;
 }
+
+message CreatePartyRequest{
+    string host_name = 1;
+}
+
+message JoinPartyRequest{
+    string party_id = 1;
+    string user_name = 2;
+}
+message PartyResponse {
+    string party_id = 1;   
+    string status = 2;
+    repeated string users = 3;
+  }
