@@ -72,26 +72,41 @@ func StreamVideoHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
     fileSize := stat.Size()
+    log.Printf("File size: %d bytes", fileSize)
 
     rangeHeader := r.Header.Get("Range")
-    if rangeHeader == "" {
-        w.Header().Set("Content-Type", "video/mp4")
-        w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
-        http.ServeContent(w, r, videoName, stat.ModTime(), file)
-        return
-    }
+    log.Printf("Range header: %s", rangeHeader)
 
     var start, end int64
-    _, err = fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end)
-    if err != nil || start >= fileSize {
-        http.Error(w, "Invalid Range", http.StatusRequestedRangeNotSatisfiable)
-        return
-    }
-    if end == 0 || end >= fileSize {
+    if rangeHeader == "" {
+        // No Range header, serve the full file
+        start = 0
         end = fileSize - 1
+    } else {
+        // Parse the Range header
+        _, err = fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end)
+        if err != nil {
+            // Handle case where only the start is specified, e.g., "bytes=0-"
+            _, err = fmt.Sscanf(rangeHeader, "bytes=%d-", &start)
+            if err != nil {
+                log.Printf("Error parsing Range header: %v", err)
+                http.Error(w, "Invalid Range", http.StatusRequestedRangeNotSatisfiable)
+                return
+            }
+            end = fileSize - 1
+        }
+
+        // Validate the range
+        if start < 0 || start >= fileSize || end >= fileSize || start > end {
+            log.Printf("Invalid Range header: %s", rangeHeader)
+            http.Error(w, "Invalid Range", http.StatusRequestedRangeNotSatisfiable)
+            return
+        }
     }
 
     contentLength := end - start + 1
+    log.Printf("Serving byte range %d-%d (%d bytes)", start, end, contentLength)
+
     w.Header().Set("Content-Type", "video/mp4")
     w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileSize))
     w.Header().Set("Accept-Ranges", "bytes")
@@ -115,4 +130,5 @@ func StreamVideoHandler(w http.ResponseWriter, r *http.Request) {
         w.Write(buffer[:n])
         contentLength -= int64(n)
     }
+    log.Println("Finished streaming video.")
 }

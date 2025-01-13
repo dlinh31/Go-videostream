@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	grpcPort = ":50051" // gRPC runs on a different port
-	httpPort = ":8080"  // REST API port
+	grpcPort = "localhost:50051" // gRPC runs on a different port
+	httpPort = "localhost:8080"  // REST API port
 )
 
 func main() {
@@ -54,6 +54,8 @@ func main() {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Range")
+			w.Header().Set("Accept-Ranges", "bytes")
+	
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusOK)
 				return
