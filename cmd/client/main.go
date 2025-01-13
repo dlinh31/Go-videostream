@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	client, err := client.NewClient("localhost:8080")
+	client, err := client.NewClient("localhost:50051")
 	if err != nil {
 		log.Fatalf("Failed to connect to server: %v", err)
 	}
