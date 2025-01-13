@@ -24,6 +24,7 @@ const (
 	VideoStreamService_StreamVideo_FullMethodName      = "/videostream.VideoStreamService/StreamVideo"
 	VideoStreamService_CreateWatchParty_FullMethodName = "/videostream.VideoStreamService/CreateWatchParty"
 	VideoStreamService_JoinWatchParty_FullMethodName   = "/videostream.VideoStreamService/JoinWatchParty"
+	VideoStreamService_SyncPlayback_FullMethodName     = "/videostream.VideoStreamService/SyncPlayback"
 )
 
 // VideoStreamServiceClient is the client API for VideoStreamService service.
@@ -35,6 +36,7 @@ type VideoStreamServiceClient interface {
 	StreamVideo(ctx context.Context, in *VideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VideoChunk], error)
 	CreateWatchParty(ctx context.Context, in *CreatePartyRequest, opts ...grpc.CallOption) (*PartyResponse, error)
 	JoinWatchParty(ctx context.Context, in *JoinPartyRequest, opts ...grpc.CallOption) (*PartyResponse, error)
+	SyncPlayback(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[PlaybackCommand, PlaybackCommand], error)
 }
 
 type videoStreamServiceClient struct {
@@ -104,6 +106,19 @@ func (c *videoStreamServiceClient) JoinWatchParty(ctx context.Context, in *JoinP
 	return out, nil
 }
 
+func (c *videoStreamServiceClient) SyncPlayback(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[PlaybackCommand, PlaybackCommand], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &VideoStreamService_ServiceDesc.Streams[1], VideoStreamService_SyncPlayback_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[PlaybackCommand, PlaybackCommand]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type VideoStreamService_SyncPlaybackClient = grpc.BidiStreamingClient[PlaybackCommand, PlaybackCommand]
+
 // VideoStreamServiceServer is the server API for VideoStreamService service.
 // All implementations must embed UnimplementedVideoStreamServiceServer
 // for forward compatibility.
@@ -113,6 +128,7 @@ type VideoStreamServiceServer interface {
 	StreamVideo(*VideoRequest, grpc.ServerStreamingServer[VideoChunk]) error
 	CreateWatchParty(context.Context, *CreatePartyRequest) (*PartyResponse, error)
 	JoinWatchParty(context.Context, *JoinPartyRequest) (*PartyResponse, error)
+	SyncPlayback(grpc.BidiStreamingServer[PlaybackCommand, PlaybackCommand]) error
 	mustEmbedUnimplementedVideoStreamServiceServer()
 }
 
@@ -137,6 +153,9 @@ func (UnimplementedVideoStreamServiceServer) CreateWatchParty(context.Context, *
 }
 func (UnimplementedVideoStreamServiceServer) JoinWatchParty(context.Context, *JoinPartyRequest) (*PartyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JoinWatchParty not implemented")
+}
+func (UnimplementedVideoStreamServiceServer) SyncPlayback(grpc.BidiStreamingServer[PlaybackCommand, PlaybackCommand]) error {
+	return status.Errorf(codes.Unimplemented, "method SyncPlayback not implemented")
 }
 func (UnimplementedVideoStreamServiceServer) mustEmbedUnimplementedVideoStreamServiceServer() {}
 func (UnimplementedVideoStreamServiceServer) testEmbeddedByValue()                            {}
@@ -242,6 +261,13 @@ func _VideoStreamService_JoinWatchParty_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VideoStreamService_SyncPlayback_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VideoStreamServiceServer).SyncPlayback(&grpc.GenericServerStream[PlaybackCommand, PlaybackCommand]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type VideoStreamService_SyncPlaybackServer = grpc.BidiStreamingServer[PlaybackCommand, PlaybackCommand]
+
 // VideoStreamService_ServiceDesc is the grpc.ServiceDesc for VideoStreamService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -271,6 +297,12 @@ var VideoStreamService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "StreamVideo",
 			Handler:       _VideoStreamService_StreamVideo_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "SyncPlayback",
+			Handler:       _VideoStreamService_SyncPlayback_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/videostream.proto",

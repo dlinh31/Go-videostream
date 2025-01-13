@@ -12,6 +12,8 @@ service VideoStreamService {
     rpc CreateWatchParty(CreatePartyRequest) returns (PartyResponse);
     rpc JoinWatchParty(JoinPartyRequest) returns (PartyResponse);
 
+    rpc SyncPlayback(stream PlaybackCommand) returns (stream PlaybackCommand);
+
 }
 
 message NoParam{};
@@ -47,4 +49,11 @@ message PartyResponse {
     string party_id = 1;   
     string status = 2;
     repeated string users = 3;
-  }
+}
+
+message PlaybackCommand{
+    string party_id = 1;
+    string command = 2;
+    int64 timestamp = 3;
+    string user_name = 4;
+}

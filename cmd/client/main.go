@@ -13,26 +13,13 @@ func main() {
 	}
 	defer client.Close()
 
-	// // List available videos
-	// videos, err := client.ListVideos()
-	// if err != nil {
-	// 	log.Fatalf("Error while listing videos: %v", err)
-	// }
-	// log.Printf("Available videos: %v", videos)
+    partyID := "party-1"
+    userName := "HostUser"
 
-	// // Stream a specific video
-	// videoName := "sample2.mp4"
-	// if err := client.StreamVideo(videoName); err != nil {
-	// 	log.Fatalf("Error while streaming video: %v", err)
-	// }
-	// partyID, err := client.CreateWatchParty("Sample host name")
-	// if err != nil {
-	// 	log.Fatalf("Error creating watch party: %v", err)
-	// }
+    err = client.SyncPlayback(partyID, userName)
+    if err != nil {
+        log.Fatalf("Error during playback sync: %v", err)
+    }
 
-	// Join the watch party
-	err = client.JoinWatchParty("party-3", "sample guest name")
-	if err != nil {
-		log.Fatalf("Error joining watch party: %v", err)
-	}
+	
 }

@@ -3,15 +3,17 @@ package main
 import (
 	"log"
 	"net"
+	"path/filepath"
 
 	"github.com/dlinh31/go-videostream/internal/server"
 	"google.golang.org/grpc"
 )
 
-const port = ":8080"
+const port = "localhost:8080"
 
 func main() {
-    videoDir := "videos"
+    videoDir, _ := filepath.Abs("videos")
+
     lis, err := net.Listen("tcp", port)
     if err != nil {
         log.Fatalf("Failed to start server: %v", err)
