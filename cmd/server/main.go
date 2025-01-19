@@ -48,6 +48,11 @@ func main() {
 			log.Printf("Request received at /api/stream")
 			server.StreamVideoHandler(w, r)
 		})
+		mux.HandleFunc("/api/ws/sync_playback", func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("Request received at /api/ws/sync_playback")
+			server.SyncPlaybackWebSocketHandler(w, r)
+		})
+
 
 		// Apply CORS middleware
 		corsMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 
@@ -131,4 +134,91 @@ func StreamVideoHandler(w http.ResponseWriter, r *http.Request) {
         contentLength -= int64(n)
     }
     log.Println("Finished streaming video.")
+}
+
+
+type WebSocketClient struct {
+	Conn     *websocket.Conn
+	PartyID  string
+	UserName string
+}
+
+var (
+	webSocketClients = make(map[string][]*WebSocketClient) // Map party_id to clients
+	webSocketMu      sync.Mutex
+)
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		// Allow connections from any origin
+		return true
+	},
+}
+
+func SyncPlaybackWebSocketHandler(w http.ResponseWriter, r *http.Request) {
+	partyID := r.URL.Query().Get("party_id")
+	userName := r.URL.Query().Get("user_name")
+	if partyID == "" || userName == "" {
+		http.Error(w, "Missing party_id or user_name", http.StatusBadRequest)
+		return
+	}
+
+	// Upgrade the HTTP connection to a WebSocket connection
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("Failed to upgrade WebSocket: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	client := &WebSocketClient{
+		Conn:     conn,
+		PartyID:  partyID,
+		UserName: userName,
+	}
+
+	// Add the client to the party
+	webSocketMu.Lock()
+	webSocketClients[partyID] = append(webSocketClients[partyID], client)
+	webSocketMu.Unlock()
+
+	log.Printf("New WebSocket client connected: %s in party %s", userName, partyID)
+
+	// Handle incoming messages from the client
+	for {
+		var msg struct {
+			Command   string `json:"command"`
+			Timestamp int64  `json:"timestamp"`
+		}
+		err := conn.ReadJSON(&msg)
+		if err != nil {
+			log.Printf("WebSocket error: %v", err)
+			break
+		}
+
+		log.Printf("Received command: %s at %d from %s", msg.Command, msg.Timestamp, userName)
+
+		// Broadcast the message to all clients in the party
+		webSocketMu.Lock()
+		for _, c := range webSocketClients[partyID] {
+			if c != client {
+				err := c.Conn.WriteJSON(msg)
+				if err != nil {
+					log.Printf("Error broadcasting to WebSocket client: %v", err)
+				}
+			}
+		}
+		webSocketMu.Unlock()
+	}
+
+	// Remove the client from the party on disconnect
+	webSocketMu.Lock()
+	for i, c := range webSocketClients[partyID] {
+		if c == client {
+			webSocketClients[partyID] = append(webSocketClients[partyID][:i], webSocketClients[partyID][i+1:]...)
+			break
+		}
+	}
+	webSocketMu.Unlock()
+	log.Printf("WebSocket client disconnected: %s from party %s", userName, partyID)
 }
